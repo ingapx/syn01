@@ -1,0 +1,85 @@
+{
+	"name": "business_student_overview",
+	"properties": {
+		"activities": [
+			{
+				"name": "SetParameters",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "b_process_date",
+					"value": "demo"
+				}
+			},
+			{
+				"name": "CallStoreProcedure",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "SetParameters",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlDWSource",
+						"sqlReaderStoredProcedureName": "[dbo].[load_business_report_if_noload]",
+						"storedProcedureParameters": {
+							"month": {
+								"type": "String"
+							},
+							"result": {
+								"type": "String"
+							},
+							"table_name": {
+								"type": "String"
+							},
+							"year": {
+								"type": "String"
+							}
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_business_procedure",
+						"type": "DatasetReference"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"year_date": {
+				"type": "string"
+			},
+			"month_date": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"b_process_date": {
+				"type": "String"
+			},
+			"b_process_result": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "03_business_reports"
+		},
+		"annotations": [],
+		"lastPublishTime": "2022-12-06T19:43:13Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

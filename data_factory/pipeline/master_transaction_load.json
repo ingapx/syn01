@@ -1,0 +1,375 @@
+{
+	"name": "master_transaction_load",
+	"properties": {
+		"activities": [
+			{
+				"name": "SetProcessDate",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "process_date",
+					"value": {
+						"value": "@concat(pipeline().parameters.year_date,'-',\npipeline().parameters.month_date,'-01')",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "ValidPostsExists",
+				"type": "GetMetadata",
+				"dependsOn": [
+					{
+						"activity": "SetProcessDate",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "ds_raw_parquet",
+						"type": "DatasetReference",
+						"parameters": {
+							"application": "sharedknow",
+							"filename": {
+								"value": "@concat('posts/year=',pipeline().parameters.year_date,\n'/month=',pipeline().parameters.month_date, '/posts.parquet')",
+								"type": "Expression"
+							}
+						}
+					},
+					"fieldList": [
+						"exists"
+					],
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"enablePartitionDiscovery": false
+					}
+				}
+			},
+			{
+				"name": "ValidCommentsExists",
+				"type": "GetMetadata",
+				"dependsOn": [
+					{
+						"activity": "SetProcessDate",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "ds_raw_parquet",
+						"type": "DatasetReference",
+						"parameters": {
+							"application": "sharedknow",
+							"filename": {
+								"value": "@concat('comments/year=',pipeline().parameters.year_date,\n'/month=',pipeline().parameters.month_date, '/comments.parquet')",
+								"type": "Expression"
+							}
+						}
+					},
+					"fieldList": [
+						"exists"
+					],
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"enablePartitionDiscovery": false
+					}
+				}
+			},
+			{
+				"name": "ValidVotesExists",
+				"type": "GetMetadata",
+				"dependsOn": [
+					{
+						"activity": "SetProcessDate",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "ds_raw_parquet",
+						"type": "DatasetReference",
+						"parameters": {
+							"application": "sharedknow",
+							"filename": {
+								"value": "@concat('votes/year=',pipeline().parameters.year_date,\n'/month=',pipeline().parameters.month_date, '/votes.parquet')",
+								"type": "Expression"
+							}
+						}
+					},
+					"fieldList": [
+						"exists"
+					],
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"enablePartitionDiscovery": false
+					}
+				}
+			},
+			{
+				"name": "IfPostsExists",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "ValidPostsExists",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@activity('ValidPostsExists').output.exists",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "IncrementalLoadPosts",
+							"type": "ExecuteDataFlow",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataflow": {
+									"referenceName": "flw_m_transaction_posts_incr",
+									"type": "DataFlowReference",
+									"parameters": {
+										"load_date": {
+											"value": "'@{utcNow()}'",
+											"type": "Expression"
+										},
+										"record_source": {
+											"value": "'@{string('sharedknow')}'",
+											"type": "Expression"
+										},
+										"creation_user": {
+											"value": "'@{pipeline().globalParameters.creation_user}'",
+											"type": "Expression"
+										},
+										"process_date": {
+											"value": "'@{variables('process_date')}'",
+											"type": "Expression"
+										}
+									},
+									"datasetParameters": {
+										"sourcePost": {
+											"application": "sharedknow",
+											"filename": {
+												"value": "@concat('posts/year=',pipeline().parameters.year_date, \n'/month=',pipeline().parameters.month_date, '/posts.parquet')",
+												"type": "Expression"
+											}
+										}
+									}
+								},
+								"compute": {
+									"coreCount": 8,
+									"computeType": "General"
+								},
+								"traceLevel": "Fine"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "IfCommentsExists",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "ValidCommentsExists",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@activity('ValidCommentsExists').output.exists",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "IncrementalLoadComments",
+							"type": "ExecuteDataFlow",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataflow": {
+									"referenceName": "flw_m_transaction_comments_incr",
+									"type": "DataFlowReference",
+									"parameters": {
+										"load_date": {
+											"value": "'@{utcNow()}'",
+											"type": "Expression"
+										},
+										"record_source": {
+											"value": "'@{string('sharedknow')}'",
+											"type": "Expression"
+										},
+										"creation_user": {
+											"value": "'@{pipeline().globalParameters.creation_user}'",
+											"type": "Expression"
+										},
+										"process_date": {
+											"value": "'@{variables('process_date')}'",
+											"type": "Expression"
+										}
+									},
+									"datasetParameters": {
+										"sourceComment": {
+											"application": "sharedknow",
+											"filename": {
+												"value": "@concat('comments/year=',pipeline().parameters.year_date,\n'/month=',pipeline().parameters.month_date, '/comments.parquet')",
+												"type": "Expression"
+											}
+										}
+									}
+								},
+								"compute": {
+									"coreCount": 8,
+									"computeType": "General"
+								},
+								"traceLevel": "Fine"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "IfVotesExists",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "ValidVotesExists",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@activity('ValidVotesExists').output.exists",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "IncrementalLoadVotes",
+							"type": "ExecuteDataFlow",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataflow": {
+									"referenceName": "flw_m_transaction_votes_incr",
+									"type": "DataFlowReference",
+									"parameters": {
+										"load_date": {
+											"value": "'@{utcNow()}'",
+											"type": "Expression"
+										},
+										"record_source": {
+											"value": "'@{string('sharedknow')}'",
+											"type": "Expression"
+										},
+										"creation_user": {
+											"value": "'@{pipeline().globalParameters.creation_user}'",
+											"type": "Expression"
+										},
+										"process_date": {
+											"value": "'@{variables('process_date')}'",
+											"type": "Expression"
+										}
+									},
+									"datasetParameters": {
+										"sourceVotes": {
+											"application": "sharedknow",
+											"filename": {
+												"value": "@concat('votes/year=',pipeline().parameters.year_date,\n'/month=',pipeline().parameters.month_date, '/votes.parquet')",
+												"type": "Expression"
+											}
+										}
+									}
+								},
+								"compute": {
+									"coreCount": 8,
+									"computeType": "General"
+								},
+								"traceLevel": "Fine"
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"year_date": {
+				"type": "string"
+			},
+			"month_date": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"process_date": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "02_master_models"
+		},
+		"annotations": [],
+		"lastPublishTime": "2022-12-06T19:43:13Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

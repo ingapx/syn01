@@ -1,0 +1,20 @@
+{
+	"name": "ddl_business_create",
+	"properties": {
+		"folder": {
+			"name": "business_main"
+		},
+		"content": {
+			"query": "USE updatalakehouse;\nGO\n\n-----------------------------------------------\n--Paso 01: Creacion de tabla de dimension\n-----------------------------------------------\nCREATE EXTERNAL TABLE business_knowa.bi_period_dim \nWITH (\n    LOCATION = '/business/business_knowa/bi_period_dim/',\n    DATA_SOURCE = ExternalUPDataSource,  \n    FILE_FORMAT = UPParquetFileFormat\n) AS \nWITH ShortCreationTable(shortdate) AS (\nSELECT CONVERT(DATE, SUBSTRING(creation_date, 1,10)) AS shortdate\nFROM master_transaction.t_interaction\n), DistinctDateTable (distinctdate) AS (\nSELECT DISTINCT shortdate as distinctdate\nFROM ShortCreationTable\n)\nSELECT ROW_NUMBER() OVER(ORDER BY distinctdate ASC) AS period_id, \ndistinctdate as period,\nYEAR(distinctdate) as year,\nMONTH(distinctdate) as month\nFROM DistinctDateTable;\n\nSELECT * FROM business_knowa.bi_period_dim\n\n-----------------------------------------------\n--Paso 02: Creacion de vista de tabla\n-----------------------------------------------\nCREATE VIEW business_knowa.v_period_dim AS\nSELECT \nperiod_id,\nperiod,\nyear,\nmonth\nFROM OPENROWSET (\n BULK '/business/business_knowa/bi_period_dim/*.parquet',\n DATA_SOURCE= 'ExternalUPDataSource',\n FORMAT ='PARQUET'\n) as [r];\n\n-----------------------------------------------\n--Paso 03: Validar creación de vista\n-----------------------------------------------\nSELECT * FROM business_knowa.v_period_dim",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "updatalakehouse",
+				"poolName": "Built-in"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

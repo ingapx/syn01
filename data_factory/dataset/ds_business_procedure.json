@@ -1,0 +1,12 @@
+{
+	"name": "ds_business_procedure",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "Synapse_LinkedService",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlDWTable",
+		"schema": []
+	}
+}

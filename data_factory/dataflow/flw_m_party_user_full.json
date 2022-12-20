@@ -1,0 +1,111 @@
+{
+	"name": "flw_m_party_user_full",
+	"properties": {
+		"folder": {
+			"name": "02_master_dataflow"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_raw_parquet",
+						"type": "DatasetReference"
+					},
+					"name": "sourceKnowUser"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "ds_master_parquet",
+						"type": "DatasetReference"
+					},
+					"name": "sinkMasterParty",
+					"description": "Slowly Changing Dimension Type 2"
+				}
+			],
+			"transformations": [
+				{
+					"name": "addDerivedColumn"
+				},
+				{
+					"name": "selectColumn"
+				}
+			],
+			"scriptLines": [
+				"parameters{",
+				"     load_date as string,",
+				"     record_source as string,",
+				"     creation_user as string,",
+				"     process_date as string",
+				"}",
+				"source(output(",
+				"          Id as string,",
+				"          CreationDate as string,",
+				"          DownVotes as string,",
+				"          LastAccessDate as string,",
+				"          Reputation as string,",
+				"          UpVotes as string,",
+				"          Views as string,",
+				"          AccountId as string,",
+				"          Email as string,",
+				"          record_source as string,",
+				"          load_date as string,",
+				"          creation_user as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     format: 'parquet') ~> sourceKnowUser",
+				"sourceKnowUser derive(record_source = $record_source,",
+				"          load_date = $load_date,",
+				"          creation_user = $creation_user,",
+				"          is_active = 1,",
+				"          process_date = $process_date,",
+				"          hash_unique = crc32(Email,Reputation,UpVotes,DownVotes,Views)) ~> addDerivedColumn",
+				"addDerivedColumn select(mapColumn(",
+				"          party_id = Id,",
+				"          creation_date = CreationDate,",
+				"          reputation_count = Reputation,",
+				"          views_count = Views,",
+				"          email = Email,",
+				"          record_source,",
+				"          load_date,",
+				"          creation_user,",
+				"          is_active,",
+				"          upvotes_count = UpVotes,",
+				"          process_date,",
+				"          downvotes_count = DownVotes,",
+				"          hash_unique",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> selectColumn",
+				"selectColumn sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'parquet',",
+				"     filePattern:'lakehouse/m_party/m_party[n].parquet',",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     mapColumn(",
+				"          party_id,",
+				"          hash_unique,",
+				"          process_date,",
+				"          email,",
+				"          creation_date,",
+				"          reputation_count,",
+				"          upvotes_count,",
+				"          downvotes_count,",
+				"          views_count,",
+				"          record_source,",
+				"          flag_active = is_active,",
+				"          load_date,",
+				"          creation_user",
+				"     )) ~> sinkMasterParty"
+			]
+		}
+	}
+}

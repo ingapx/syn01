@@ -1,0 +1,50 @@
+{
+	"name": "master_core_load",
+	"properties": {
+		"activities": [
+			{
+				"name": "MasterPartyLoad",
+				"type": "ExecutePipeline",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "master_party_load",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"year_date": {
+							"value": "@pipeline().parameters.year_date",
+							"type": "Expression"
+						},
+						"month_date": {
+							"value": "@pipeline().parameters.month_date",
+							"type": "Expression"
+						}
+					}
+				}
+			}
+		],
+		"parameters": {
+			"year_date": {
+				"type": "string"
+			},
+			"month_date": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"m_process_date": {
+				"type": "String"
+			},
+			"m_process_result": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "02_master_models"
+		},
+		"annotations": []
+	}
+}

@@ -1,0 +1,87 @@
+{
+	"name": "core_lakehouse_master",
+	"properties": {
+		"activities": [
+			{
+				"name": "MasterLakeLoad",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "SetYearVariable",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "SetMonthVariable",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "master_core_load",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"year_date": {
+							"value": "@variables('year_date')",
+							"type": "Expression"
+						},
+						"month_date": {
+							"value": "@variables('month_date')",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "SetYearVariable",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "year_date",
+					"value": {
+						"value": "@substring(pipeline().parameters.process_date, 0, 4)",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "SetMonthVariable",
+				"description": "",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "month_date",
+					"value": {
+						"value": "@substring(pipeline().parameters.process_date, 6, 2)",
+						"type": "Expression"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"process_date": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"year_date": {
+				"type": "String"
+			},
+			"month_date": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "00_core_project"
+		},
+		"annotations": []
+	}
+}

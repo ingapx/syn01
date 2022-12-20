@@ -1,0 +1,20 @@
+{
+	"name": "ddl_lake_create_external",
+	"properties": {
+		"folder": {
+			"name": "master_main"
+		},
+		"content": {
+			"query": "\n-----------------------------------------------\n--Paso 01: Creacion table\n-----------------------------------------------\nSELECT *\nFrom OPENROWSET (BULK '/master/lakehouse/m_party/*.parquet',\nDATA_SOURCE= 'ExternalUPDataSource',\nFORMAT ='PARQUET')  AS [file]\nGO;\n\n-----------------------------------------------\n--Paso 02: Creacion table\n-----------------------------------------------\nUSE updatalakehouse;\nGO\n\nCREATE EXTERNAL TABLE master_party.m_party(\n    party_id nvarchar(50),\n    hash_unique BIGINT,\n    process_date nvarchar(10),\n    email nvarchar(50),    \n    creation_date nvarchar(40),\n    reputation_count nvarchar(20),\n    upvotes_count nvarchar(20),\n    downvotes_count nvarchar(20),\n    views_count nvarchar(20),\n    record_source nvarchar(20),\n    flag_active int,\n    load_date nvarchar(30),\n    creation_user nvarchar(20)\n)\n WITH (\n     LOCATION = '/master/lakehouse/m_party/',\n     DATA_SOURCE = ExternalUPDataSource,  \n     FILE_FORMAT = UPParquetFileFormat\n )\nGO\n\n---------------------------------------------------------\n--Paso 03: Validación de tipo de dato y tamaño de string\n---------------------------------------------------------\nSELECT party_id,hash_unique,process_date, email,creation_date,\nreputation_count, upvotes_count, downvotes_count, views_count, record_source, \nflag_active,load_date,creation_user\nFROM master_party.m_party\n\n\n-----------------------------------------------\n--Paso 04: Consulta de archivos\n-----------------------------------------------\nSELECT TOP(100) * \nFrom OPENROWSET (BULK '/master/lakehouse/master_transaction/year=*/month=*/*.parquet',\nDATA_SOURCE= 'ExternalUPDataSource',\nFORMAT ='PARQUET')  AS [file]\nWHERE request_type = 'vote'\nGO;\n\n-----------------------------------------------\n--Paso 05: Creacion tabla externa m_trasaction\n-----------------------------------------------\nCREATE EXTERNAL TABLE master_transaction.t_interaction(\n    interaction_id nvarchar(40),\n    party_id nvarchar(50),\n    reference_id nvarchar(40),\n    creation_date nvarchar(40),\n    deadline_date nvarchar(40),\n    answer_count nvarchar(10),\n    comment_count nvarchar(10),\n    favorite_count nvarchar(10),\n    view_count nvarchar(10),\n    score_value nvarchar(10),    \n    request_type nvarchar(10),\n    flag_active int,\n    load_date nvarchar(30),\n    record_source nvarchar(20),\n    creation_user nvarchar(20),\n    process_date nvarchar(10)\n) WITH (\n     LOCATION = '/master/lakehouse/master_transaction/year=*/month=*/*.parquet',\n     DATA_SOURCE = ExternalUPDataSource,  \n     FILE_FORMAT = UPParquetFileFormat\n )\nGO;\n\n-----------------------------------------------\n--Paso 06: Creacion tabla externa\n-----------------------------------------------\nSELECT TOP(100) interaction_id, party_id, reference_id, creation_date, request_type, flag_active, \n    load_date, record_source, creation_user, process_date\nFROM master_transaction.t_interaction\nGO;",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "updatalakehouse",
+				"poolName": "Built-in"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

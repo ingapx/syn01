@@ -1,0 +1,27 @@
+{
+	"name": "core_invoke_pipeline",
+	"properties": {
+		"activities": [
+			{
+				"name": "Execute Pipeline1",
+				"type": "ExecutePipeline",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "core_lakehouse_raw",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"process_date": "\"demo\""
+					}
+				}
+			}
+		],
+		"folder": {
+			"name": "00_core_project/testing"
+		},
+		"annotations": []
+	}
+}

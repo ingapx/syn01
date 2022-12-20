@@ -1,0 +1,201 @@
+{
+	"name": "flw_m_party_user_incr",
+	"properties": {
+		"folder": {
+			"name": "02_master_dataflow"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_raw_parquet",
+						"type": "DatasetReference"
+					},
+					"name": "sourceKnowUser"
+				},
+				{
+					"dataset": {
+						"referenceName": "ds_master_parquet",
+						"type": "DatasetReference"
+					},
+					"name": "sourceMasterParty"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "ds_master_parquet",
+						"type": "DatasetReference"
+					},
+					"name": "sinkMasterPartyUpdate"
+				}
+			],
+			"transformations": [
+				{
+					"name": "selectDiffColumn"
+				},
+				{
+					"name": "lookupDiff"
+				},
+				{
+					"name": "addHasUnique"
+				},
+				{
+					"name": "filterNewRows"
+				},
+				{
+					"name": "selecNoActiveRows"
+				},
+				{
+					"name": "NotModified"
+				},
+				{
+					"name": "selectActiveRows"
+				},
+				{
+					"name": "updateFlagNoActive"
+				},
+				{
+					"name": "newRowsColumn"
+				},
+				{
+					"name": "unionAllRows"
+				},
+				{
+					"name": "selectNotModified"
+				}
+			],
+			"scriptLines": [
+				"parameters{",
+				"     load_date as string,",
+				"     record_source as string,",
+				"     creation_user as string,",
+				"     process_date as string",
+				"}",
+				"source(output(",
+				"          Id as string,",
+				"          CreationDate as string,",
+				"          DownVotes as string,",
+				"          LastAccessDate as string,",
+				"          Reputation as string,",
+				"          UpVotes as string,",
+				"          Views as string,",
+				"          AccountId as string,",
+				"          Email as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     format: 'parquet') ~> sourceKnowUser",
+				"source(output(",
+				"          party_id as string,",
+				"          hash_unique as long,",
+				"          process_date as string,",
+				"          email as string,",
+				"          creation_date as string,",
+				"          reputation_count as string,",
+				"          upvotes_count as string,",
+				"          downvotes_count as string,",
+				"          views_count as string,",
+				"          record_source as string,",
+				"          flag_active as integer,",
+				"          load_date as string,",
+				"          creation_user as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     format: 'parquet',",
+				"     wildcardPaths:[(\"lakehouse/m_party/*.parquet\")]) ~> sourceMasterParty",
+				"sourceMasterParty select(mapColumn(",
+				"          diff_party_id = party_id,",
+				"          diff_hash_unique = hash_unique,",
+				"          diff_process_date = process_date,",
+				"          diff_email = email,",
+				"          diff_creation_date = creation_date,",
+				"          diff_reputation_count = reputation_count,",
+				"          diff_upvotes_count = upvotes_count,",
+				"          diff_downvotes_count = downvotes_count,",
+				"          diff_views_count = views_count,",
+				"          diff_record_source = record_source,",
+				"          diff_flag_active = flag_active,",
+				"          diff_load_date = load_date,",
+				"          diff_creation_user = creation_user",
+				"     ),",
+				"     skipDuplicateMapInputs: false,",
+				"     skipDuplicateMapOutputs: false) ~> selectDiffColumn",
+				"addHasUnique, selectDiffColumn lookup(Id == diff_party_id,",
+				"     multiple: true,",
+				"     broadcast: 'auto')~> lookupDiff",
+				"sourceKnowUser derive(hash_unique = crc32(Email,Reputation,UpVotes,DownVotes,Views)) ~> addHasUnique",
+				"lookupDiff filter(notEquals(hash_unique, diff_hash_unique)) ~> filterNewRows",
+				"filterNewRows select(mapColumn(",
+				"          party_id = diff_party_id,",
+				"          hash_unique = diff_hash_unique,",
+				"          process_date = diff_process_date,",
+				"          email = diff_email,",
+				"          creation_date = diff_creation_date,",
+				"          reputation_count = diff_reputation_count,",
+				"          upvotes_count = diff_upvotes_count,",
+				"          downvotes_count = diff_downvotes_count,",
+				"          views_count = diff_views_count,",
+				"          flag_active = diff_flag_active,",
+				"          creation_user = diff_creation_user,",
+				"          load_date = diff_load_date,",
+				"          record_source = diff_record_source",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> selecNoActiveRows",
+				"selectDiffColumn, selecNoActiveRows exists(diff_party_id == party_id,",
+				"     negate:true,",
+				"     broadcast: 'auto')~> NotModified",
+				"filterNewRows select(mapColumn(",
+				"          party_id = Id,",
+				"          creation_date = CreationDate,",
+				"          downvotes_count = DownVotes,",
+				"          upvotes_count = UpVotes,",
+				"          reputation_count = Reputation,",
+				"          email = Email,",
+				"          views_count = Views",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> selectActiveRows",
+				"selecNoActiveRows derive(flag_active = 0) ~> updateFlagNoActive",
+				"selectActiveRows derive(flag_active = 1,",
+				"          load_date = $load_date,",
+				"          creation_user = $creation_user,",
+				"          record_source = $record_source,",
+				"          hash_unique = crc32(email,reputation_count,upvotes_count,downvotes_count,views_count),",
+				"          process_date = $process_date) ~> newRowsColumn",
+				"updateFlagNoActive, newRowsColumn, selectNotModified union(byName: true)~> unionAllRows",
+				"NotModified select(mapColumn(",
+				"          party_id = diff_party_id,",
+				"          hash_unique = diff_hash_unique,",
+				"          process_date = diff_process_date,",
+				"          email = diff_email,",
+				"          creation_date = diff_creation_date,",
+				"          reputation_count = diff_reputation_count,",
+				"          upvotes_count = diff_upvotes_count,",
+				"          downvotes_count = diff_downvotes_count,",
+				"          views_count = diff_views_count,",
+				"          flag_active = diff_flag_active,",
+				"          load_date = diff_load_date,",
+				"          record_source = diff_record_source,",
+				"          creation_user = diff_creation_user",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> selectNotModified",
+				"unionAllRows sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'parquet',",
+				"     filePattern:'/lakehouse/m_party/m_party[n].parquet',",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> sinkMasterPartyUpdate"
+			]
+		}
+	}
+}

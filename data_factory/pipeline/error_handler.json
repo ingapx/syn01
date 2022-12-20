@@ -1,0 +1,34 @@
+{
+	"name": "error_handler",
+	"properties": {
+		"activities": [
+			{
+				"name": "Set variable1",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "demo",
+					"value": "demo"
+				}
+			}
+		],
+		"parameters": {
+			"message_contect": {
+				"type": "string"
+			},
+			"message_type": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"demo": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "00_core_function"
+		},
+		"annotations": []
+	}
+}

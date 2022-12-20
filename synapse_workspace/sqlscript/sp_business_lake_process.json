@@ -1,0 +1,20 @@
+{
+	"name": "sp_business_lake_process",
+	"properties": {
+		"folder": {
+			"name": "master_main"
+		},
+		"content": {
+			"query": "\n-----------------------------------------------\n--Paso 01: Procedimiento almacenado - Template\n-----------------------------------------------\nCREATE PROCEDURE load_business_report_if_noload\n    @table_name NVARCHAR(40),\n    @year NVARCHAR(4),\n    @month NVARCHAR(2),\n    @result NVARCHAR(MAX) OUTPUT\nAS BEGIN\n    BEGIN TRY \n        IF NULLIF(@year, '') IS NULL\n        BEGIN\n        -- Generate divide-by-zero error.  \n            ;THROW 51007, 'Parameter not defined.', 1\n        END\n        SET @result = 'Not Problem'\n    END TRY  \n    BEGIN CATCH  \n        -- Execute error retrieval routine.  \n        SET @result = (SELECT  ERROR_MESSAGE() AS ErrorMessage)\n    END CATCH;\n    SELECT @result AS resultado\nEND\nGO\n\n-----------------------------------------------\n--Paso 02: Prueba de procedimiento almacenado\n-----------------------------------------------\nDECLARE @OutputParameter  NVARCHAR(MAX)\n       ,@ReturnValue      INT\n\nEXEC @ReturnValue=load_business_report_if_noload 1,null, null, @OutputParameter OUTPUT\nPRINT @OutputParameter\n\n-----------------------------------------------\n--Paso 03: Transformación de datos\n-----------------------------------------------\n\nCREATE EXTERNAL TABLE business.DimProduct\n WITH (\n     LOCATION = '/business/lakehouse/dimproduct/Year=2022/Month=04/',\n     DATA_SOURCE = ExternalUPDataSource,  \n     FILE_FORMAT = UPParquetFileFormat\n )  \n AS\nSELECT p.ProductID AS ProductID, \np.Name AS ProductName, \np.ProductNumber AS ProductAlternativeKey, \np.FinishedGoodsFlag AS FinishedGoodsFlag, \np.Color AS Color,\np.SafetyStockLevel AS SafetyStockLevel,\np.ReorderPoint AS ReorderPoint,\np.StandardCost AS StandardCost,\np.ListPrice AS ListPrice,\np.Size AS Size,\np.ProductLine AS ProductLine,\np.Class AS Class,\np.Style AS Style,\np.SellStartDate AS SellStartDate,\np.SellEndDate AS SellEndDate,\np.DiscontinuedDate AS DiscontinuedDate,\npc.ProductCategoryName AS ProductCategoryName,\npsc.Name AS ProductSubCategoryName\nFROM stagingDim.Product p  \nINNER JOIN stagingDim.ProductSubcategory psc\nON p.ProductSubCategoryID = psc.ProductSubCategoryID\nINNER JOIN stagingDim.ProductCategory pc\nON pc.ProductCategoryID = psc.ProductCategoryID\nGO\n\n\n\n\n\n",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "updatalakehouse",
+				"poolName": "Built-in"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

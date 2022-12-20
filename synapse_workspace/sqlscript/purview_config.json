@@ -1,0 +1,17 @@
+{
+	"name": "purview_config",
+	"properties": {
+		"content": {
+			"query": "\n-- Paso 01: Create user\nCREATE LOGIN pviewupdsmalpdevlo1i FROM EXTERNAL PROVIDER;\n\n--Paso 02: Use a managed identity\nCREATE USER pviewupdsmalpdevlo1i FOR LOGIN pviewupdsmalpdevlo1i;\nALTER ROLE db_datareader ADD MEMBER pviewupdsmalpdevlo1i; \n\n--Paso 03: Reference for external data source\nGRANT REFERENCES ON DATABASE SCOPED CREDENTIAL::[UPUserIdentity] TO pviewupdsmalpdevlo1i;",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "updatalakehouse",
+				"poolName": "Built-in"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

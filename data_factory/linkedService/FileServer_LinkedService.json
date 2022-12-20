@@ -1,0 +1,17 @@
+{
+	"name": "FileServer_LinkedService",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "FileServer",
+		"typeProperties": {
+			"host": "\\\\Lenovo-PC\\D$\\data",
+			"userId": "MicrosoftAccount\\leonidas_10@hotmail.com",
+			"encryptedCredential": "eyJDcmVkZW50aWFsSWQiOiIyYzVmMWQ2MS1mZWY5LTRjNDQtODJlYS0wOGY5ZmVkNDNkNDAiLCJWZXJzaW9uIjoiMi4wIiwiQ2xhc3NUeXBlIjoiTWljcm9zb2Z0LkRhdGFQcm94eS5Db3JlLkludGVyU2VydmljZURhdGFDb250cmFjdC5DcmVkZW50aWFsU1UwNkNZMTQifQ=="
+		},
+		"connectVia": {
+			"referenceName": "IRLocalMauroLeon001",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}

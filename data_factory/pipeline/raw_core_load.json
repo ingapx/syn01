@@ -1,0 +1,88 @@
+{
+	"name": "raw_core_load",
+	"properties": {
+		"activities": [
+			{
+				"name": "KnowLoad",
+				"type": "ExecutePipeline",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "raw_know_load",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"year_date": {
+							"value": "@pipeline().parameters.year_date",
+							"type": "Expression"
+						},
+						"month_date": {
+							"value": "@pipeline().parameters.month_date",
+							"type": "Expression"
+						},
+						"process_date": {
+							"value": "@pipeline().parameters.r_process_date",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "G4Load",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "KnowLoad",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "raw_ga4_load",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"year_date": {
+							"value": "@pipeline().parameters.year_date",
+							"type": "Expression"
+						},
+						"month_date": {
+							"value": "@pipeline().parameters.month_date",
+							"type": "Expression"
+						},
+						"process_date": {
+							"value": "@pipeline().parameters.r_process_date",
+							"type": "Expression"
+						}
+					}
+				}
+			}
+		],
+		"parameters": {
+			"year_date": {
+				"type": "string"
+			},
+			"month_date": {
+				"type": "string"
+			},
+			"r_process_date": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"r_process_result": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "01_raw_source"
+		},
+		"annotations": []
+	}
+}

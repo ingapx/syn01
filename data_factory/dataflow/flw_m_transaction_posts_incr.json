@@ -1,0 +1,119 @@
+{
+	"name": "flw_m_transaction_posts_incr",
+	"properties": {
+		"folder": {
+			"name": "02_master_dataflow"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_raw_parquet",
+						"type": "DatasetReference"
+					},
+					"name": "sourcePost"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "ds_master_parquet",
+						"type": "DatasetReference"
+					},
+					"name": "sinkPostInteraction"
+				}
+			],
+			"transformations": [
+				{
+					"name": "selectPostColumn"
+				},
+				{
+					"name": "addExtraColumn"
+				}
+			],
+			"scriptLines": [
+				"parameters{",
+				"     load_date as string,",
+				"     record_source as string,",
+				"     creation_user as string,",
+				"     process_date as string",
+				"}",
+				"source(output(",
+				"          Id as string,",
+				"          AcceptedAnswerId as string,",
+				"          AnswerCount as string,",
+				"          ClosedDate as string,",
+				"          CommentCount as string,",
+				"          CommunityOwnedDate as string,",
+				"          CreationDate as string,",
+				"          FavoriteCount as string,",
+				"          LastActivityDate as string,",
+				"          LastEditDate as string,",
+				"          LastEditorUserId as string,",
+				"          OwnerUserId as string,",
+				"          ParentId as string,",
+				"          PostTypeId as string,",
+				"          Score as string,",
+				"          Tags as string,",
+				"          ViewCount as string,",
+				"          record_source as string,",
+				"          load_date as string,",
+				"          creation_user as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     format: 'parquet') ~> sourcePost",
+				"sourcePost select(mapColumn(",
+				"          temp_id = Id,",
+				"          party_id = OwnerUserId,",
+				"          reference_id = ParentId,",
+				"          creation_date = CreationDate,",
+				"          deadline_date = ClosedDate,",
+				"          answer_count = AnswerCount,",
+				"          comment_count = CommentCount,",
+				"          favorite_count = FavoriteCount,",
+				"          view_count = ViewCount,",
+				"          score_value = Score",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> selectPostColumn",
+				"selectPostColumn derive(interaction_id = uuid(),",
+				"          request_type = \"posts\",",
+				"          flag_active = 1,",
+				"          load_date = $load_date,",
+				"          record_source = '',",
+				"          creation_user = $creation_user,",
+				"          process_date = $process_date) ~> addExtraColumn",
+				"addExtraColumn sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'parquet',",
+				"     filePattern:'lakehouse/master_transaction/year=2008/month=01/t_interaction_posts[n].parquet',",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     mapColumn(",
+				"          interaction_id,",
+				"          party_id,",
+				"          reference_id,",
+				"          creation_date,",
+				"          deadline_date,",
+				"          answer_count,",
+				"          comment_count,",
+				"          favorite_count,",
+				"          view_count,",
+				"          score_value,",
+				"          request_type,",
+				"          flag_active,",
+				"          load_date,",
+				"          record_source,",
+				"          creation_user,",
+				"          process_date",
+				"     )) ~> sinkPostInteraction"
+			]
+		}
+	}
+}

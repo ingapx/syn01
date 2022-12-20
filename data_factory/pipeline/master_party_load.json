@@ -1,0 +1,206 @@
+{
+	"name": "master_party_load",
+	"properties": {
+		"activities": [
+			{
+				"name": "SetProcessDate",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "process_date",
+					"value": {
+						"value": "@concat(pipeline().parameters.year_date,'-',\npipeline().parameters.month_date,'-01')",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "ValidPartyFullLoad",
+				"type": "GetMetadata",
+				"dependsOn": [
+					{
+						"activity": "SetProcessDate",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "ds_general_parquet",
+						"type": "DatasetReference",
+						"parameters": {
+							"zona": "master",
+							"application": "lakehouse",
+							"filename": "m_party"
+						}
+					},
+					"fieldList": [
+						"exists",
+						"itemName"
+					],
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"recursive": true,
+						"enablePartitionDiscovery": false
+					}
+				}
+			},
+			{
+				"name": "IfPartyFullLoad",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "ValidPartyFullLoad",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@activity('ValidPartyFullLoad').output.exists",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "FullLoadParty",
+							"type": "ExecuteDataFlow",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataflow": {
+									"referenceName": "flw_m_party_user_full",
+									"type": "DataFlowReference",
+									"parameters": {
+										"load_date": {
+											"value": "'@{utcNow()}'",
+											"type": "Expression"
+										},
+										"record_source": {
+											"value": "'@{string('sharedknow')}'",
+											"type": "Expression"
+										},
+										"creation_user": {
+											"value": "'@{pipeline().globalParameters.creation_user}'",
+											"type": "Expression"
+										},
+										"process_date": {
+											"value": "'@{variables('process_date')}'",
+											"type": "Expression"
+										}
+									},
+									"datasetParameters": {
+										"sourceKnowUser": {
+											"application": {
+												"value": "@string('sharedknow')",
+												"type": "Expression"
+											},
+											"filename": {
+												"value": "@concat('userstest/year=',pipeline().parameters.year_date,\n'/month=',pipeline().parameters.month_date, '/userstest.parquet')",
+												"type": "Expression"
+											}
+										}
+									}
+								},
+								"compute": {
+									"coreCount": 8,
+									"computeType": "General"
+								},
+								"traceLevel": "Fine"
+							}
+						}
+					],
+					"ifTrueActivities": [
+						{
+							"name": "IncrementalLoadParty",
+							"type": "ExecuteDataFlow",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataflow": {
+									"referenceName": "flw_m_party_user_incr",
+									"type": "DataFlowReference",
+									"parameters": {
+										"load_date": {
+											"value": "'@{utcNow()}'",
+											"type": "Expression"
+										},
+										"record_source": {
+											"value": "'@{string('sharedknow')}'",
+											"type": "Expression"
+										},
+										"creation_user": {
+											"value": "'@{pipeline().globalParameters.creation_user}'",
+											"type": "Expression"
+										},
+										"process_date": {
+											"value": "'@{variables('process_date')}'",
+											"type": "Expression"
+										}
+									},
+									"datasetParameters": {
+										"sourceKnowUser": {
+											"application": "@string('sharedknow')",
+											"filename": "@concat('userstest/year=',pipeline().parameters.year_date, '/month=',pipeline().parameters.month_date, '/userstest.parquet')"
+										}
+									}
+								},
+								"compute": {
+									"coreCount": 8,
+									"computeType": "General"
+								},
+								"traceLevel": "Fine"
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"year_date": {
+				"type": "string",
+				"defaultValue": "2008"
+			},
+			"month_date": {
+				"type": "string",
+				"defaultValue": "01"
+			}
+		},
+		"variables": {
+			"process_date": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "02_master_models"
+		},
+		"annotations": [],
+		"lastPublishTime": "2022-12-06T19:43:13Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

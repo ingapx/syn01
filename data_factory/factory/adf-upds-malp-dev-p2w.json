@@ -1,0 +1,16 @@
+{
+	"name": "adf-upds-malp-dev-p2w",
+	"properties": {
+		"globalParameters": {
+			"creation_user": {
+				"type": "string",
+				"value": "mauroleon"
+			},
+			"default": {
+				"type": "string",
+				"value": "nodefinido"
+			}
+		}
+	},
+	"location": "eastus2"
+}

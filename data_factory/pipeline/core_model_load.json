@@ -1,0 +1,30 @@
+{
+	"name": "core_model_load",
+	"properties": {
+		"description": "Pipeline de datos para poblar las tablas input requeridos para el modelo analítico",
+		"activities": [
+			{
+				"name": "dummy",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "initial",
+					"value": "demo"
+				}
+			}
+		],
+		"variables": {
+			"initial": {
+				"type": "String"
+			},
+			"demo": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "00_core_project"
+		},
+		"annotations": []
+	}
+}

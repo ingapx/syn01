@@ -1,0 +1,567 @@
+{
+	"name": "raw_know_load",
+	"properties": {
+		"activities": [
+			{
+				"name": "ValidPreviousExec",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "JsonSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "JsonReadSettings"
+						}
+					},
+					"dataset": {
+						"referenceName": "ds_metadata_json",
+						"type": "DatasetReference",
+						"parameters": {
+							"application": "sharedknow",
+							"filename": "plan_config.json"
+						}
+					}
+				}
+			},
+			{
+				"name": "SetConfigParam",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "ValidPreviousExec",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "last_update",
+					"value": {
+						"value": "@activity('ValidPreviousExec').output.firstRow.last_update",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "IfNotExecution",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "SetConfigParam",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@greater(ticks(concat(pipeline().parameters.process_date,'T00:00:00.0000000Z')),\nticks(concat(variables('last_update'),'T00:00:00.0000000Z')))",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "CopyKnowUsers",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "DelimitedTextSource",
+									"additionalColumns": [
+										{
+											"name": "record_source",
+											"value": "sharedknow"
+										},
+										{
+											"name": "load_date",
+											"value": {
+												"value": "@utcNow()",
+												"type": "Expression"
+											}
+										},
+										{
+											"name": "creation_user",
+											"value": {
+												"value": "@pipeline().globalParameters.creation_user",
+												"type": "Expression"
+											}
+										}
+									],
+									"storeSettings": {
+										"type": "FileServerReadSettings",
+										"recursive": true,
+										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "DelimitedTextReadSettings"
+									}
+								},
+								"sink": {
+									"type": "ParquetSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "ParquetWriteSettings"
+									}
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "ds_source_csv",
+									"type": "DatasetReference",
+									"parameters": {
+										"application": "sharedknow",
+										"filename": {
+											"value": "@concat('users/',pipeline().parameters.process_date,'/sk_users.csv')",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "ds_raw_parquet",
+									"type": "DatasetReference",
+									"parameters": {
+										"application": "sharedknow",
+										"filename": {
+											"value": "@concat('users/year=',pipeline().parameters.year_date,'/month=',pipeline().parameters.month_date,'/users.parquet')",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "CopyKnowVotes",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "CopyKnowUsers",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "DelimitedTextSource",
+									"additionalColumns": [
+										{
+											"name": "record_source",
+											"value": "sharedknow"
+										},
+										{
+											"name": "load_date",
+											"value": {
+												"value": "@utcNow()",
+												"type": "Expression"
+											}
+										},
+										{
+											"name": "creation_user",
+											"value": {
+												"value": "@pipeline().globalParameters.creation_user",
+												"type": "Expression"
+											}
+										}
+									],
+									"storeSettings": {
+										"type": "FileServerReadSettings",
+										"recursive": true,
+										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "DelimitedTextReadSettings"
+									}
+								},
+								"sink": {
+									"type": "ParquetSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "ParquetWriteSettings"
+									}
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "ds_source_csv",
+									"type": "DatasetReference",
+									"parameters": {
+										"application": "sharedknow",
+										"filename": {
+											"value": "@concat('votes/',pipeline().parameters.process_date,'/sk_votes.csv')",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "ds_raw_parquet",
+									"type": "DatasetReference",
+									"parameters": {
+										"application": "sharedknow",
+										"filename": {
+											"value": "@concat('votes/year=',pipeline().parameters.year_date,'/month=',pipeline().parameters.month_date,'/votes.parquet')",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "CopyKnowComments",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "CopyKnowUsers",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "DelimitedTextSource",
+									"additionalColumns": [
+										{
+											"name": "record_source",
+											"value": "sharedknow"
+										},
+										{
+											"name": "load_date",
+											"value": {
+												"value": "@utcNow()",
+												"type": "Expression"
+											}
+										},
+										{
+											"name": "creation_user",
+											"value": {
+												"value": "@pipeline().globalParameters.creation_user",
+												"type": "Expression"
+											}
+										}
+									],
+									"storeSettings": {
+										"type": "FileServerReadSettings",
+										"recursive": true,
+										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "DelimitedTextReadSettings"
+									}
+								},
+								"sink": {
+									"type": "ParquetSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "ParquetWriteSettings"
+									}
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "ds_source_csv",
+									"type": "DatasetReference",
+									"parameters": {
+										"application": "sharedknow",
+										"filename": {
+											"value": "@concat('comments/',pipeline().parameters.process_date,'/sk_comments.csv')",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "ds_raw_parquet",
+									"type": "DatasetReference",
+									"parameters": {
+										"application": "sharedknow",
+										"filename": {
+											"value": "@concat('comments/year=',pipeline().parameters.year_date,'/month=',pipeline().parameters.month_date,'/comments.parquet')",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					]
+				}
+			},
+			{
+				"name": "EachProcessDate",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "SetProcessDateList",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@variables('process_date_list')",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "CopyKnowPosts",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "DelimitedTextSource",
+									"additionalColumns": [
+										{
+											"name": "record_source",
+											"value": "sharedknow"
+										},
+										{
+											"name": "load_date",
+											"value": {
+												"value": "@utcNow()",
+												"type": "Expression"
+											}
+										},
+										{
+											"name": "creation_user",
+											"value": {
+												"value": "@pipeline().globalParameters.creation_user",
+												"type": "Expression"
+											}
+										}
+									],
+									"storeSettings": {
+										"type": "FileServerReadSettings",
+										"recursive": true,
+										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "DelimitedTextReadSettings"
+									}
+								},
+								"sink": {
+									"type": "ParquetSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "ParquetWriteSettings"
+									}
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "ds_source_csv",
+									"type": "DatasetReference",
+									"parameters": {
+										"application": "sharedknow",
+										"filename": {
+											"value": "@concat('posts/',string(item().name),'/sk_posts_',\nreplace(string(item().name),'-',''),'.csv')",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "ds_raw_parquet",
+									"type": "DatasetReference",
+									"parameters": {
+										"application": "sharedknow",
+										"filename": {
+											"value": "@concat('posts/year=',substring(string(item().name),0,4),'/month=',substring(string(item().name),5, 2),'/posts.parquet')",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					]
+				}
+			},
+			{
+				"name": "GetPostsFileList",
+				"type": "GetMetadata",
+				"dependsOn": [
+					{
+						"activity": "IfNotExecution",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "ds_raw_dataset",
+						"type": "DatasetReference",
+						"parameters": {
+							"aplicacion": "sharedknow",
+							"filename": "posts"
+						}
+					},
+					"fieldList": [
+						"childItems"
+					],
+					"storeSettings": {
+						"type": "FileServerReadSettings",
+						"recursive": true,
+						"enablePartitionDiscovery": false
+					},
+					"formatSettings": {
+						"type": "DelimitedTextReadSettings"
+					}
+				}
+			},
+			{
+				"name": "SetProcessDateList",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "GetPostsFileList",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "process_date_list",
+					"value": {
+						"value": "@activity('GetPostsFileList').output.childItems",
+						"type": "Expression"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"year_date": {
+				"type": "string"
+			},
+			"month_date": {
+				"type": "string"
+			},
+			"process_date": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"last_update": {
+				"type": "String"
+			},
+			"process_result": {
+				"type": "String"
+			},
+			"process_date_list": {
+				"type": "Array"
+			}
+		},
+		"folder": {
+			"name": "01_raw_source"
+		},
+		"annotations": [],
+		"lastPublishTime": "2022-12-06T19:43:13Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}
