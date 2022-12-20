@@ -1,0 +1,101 @@
+{
+	"name": "ds_raw_parquet",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ADLS_LinkendService",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"application": {
+				"type": "string"
+			},
+			"filename": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "Parquet",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": {
+					"value": "@concat(dataset().filename,'.parquet')\r\n\r\n",
+					"type": "Expression"
+				},
+				"folderPath": {
+					"value": "@dataset().application",
+					"type": "Expression"
+				},
+				"fileSystem": "raw"
+			},
+			"compressionCodec": "snappy"
+		},
+		"schema": [
+			{
+				"name": "codbin",
+				"type": "INT32"
+			},
+			{
+				"name": "fecha_desembolso",
+				"type": "UTF8"
+			},
+			{
+				"name": "fecha_activacion",
+				"type": "UTF8"
+			},
+			{
+				"name": "NumMesesAct",
+				"type": "INT32"
+			},
+			{
+				"name": "fecha_cancelacion",
+				"type": "UTF8"
+			},
+			{
+				"name": "NumMesesCanc",
+				"type": "INT32"
+			},
+			{
+				"name": "linea_credito",
+				"type": "INT32"
+			},
+			{
+				"name": "flg_excepcion_consolidado",
+				"type": "UTF8"
+			},
+			{
+				"name": "PD",
+				"type": "UTF8"
+			},
+			{
+				"name": "id_agencia",
+				"type": "UTF8"
+			},
+			{
+				"name": "TasaPOS",
+				"type": "UTF8"
+			},
+			{
+				"name": "IdFlujoVenta",
+				"type": "UTF8"
+			},
+			{
+				"name": "IdCanalVenta",
+				"type": "UTF8"
+			},
+			{
+				"name": "idPerfilTC",
+				"type": "UTF8"
+			},
+			{
+				"name": "IdRangoIngreso",
+				"type": "UTF8"
+			},
+			{
+				"name": "edad",
+				"type": "INT32"
+			}
+		]
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

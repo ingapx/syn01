@@ -1,0 +1,34 @@
+{
+	"name": "master_transaction_core",
+	"properties": {
+		"activities": [
+			{
+				"name": "dummy3",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "initial",
+					"value": "0"
+				}
+			}
+		],
+		"variables": {
+			"dummy": {
+				"type": "String"
+			},
+			"initial": {
+				"type": "String"
+			},
+			"initial2": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "02_master_models"
+		},
+		"annotations": [],
+		"lastPublishTime": "2022-12-18T19:40:31Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

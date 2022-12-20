@@ -1,0 +1,17 @@
+{
+	"name": "FileServer_LinkendService",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "FileServer",
+		"typeProperties": {
+			"host": "\\\\ALCIDES-LENOVO\\C$\\data",
+			"userId": "MicrosoftAccount\\alcides_px1@hotmail.com",
+			"encryptedCredential": "eyJDcmVkZW50aWFsSWQiOiIwYzM2MzdmZi0yNzFjLTQ2MzQtOTM3Ny0yYjkxMThkMTc3YzMiLCJWZXJzaW9uIjoiMi4wIiwiQ2xhc3NUeXBlIjoiTWljcm9zb2Z0LkRhdGFQcm94eS5Db3JlLkludGVyU2VydmljZURhdGFDb250cmFjdC5DcmVkZW50aWFsU1UwNkNZMTQifQ=="
+		},
+		"connectVia": {
+			"referenceName": "IRLocalAIT002",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}
